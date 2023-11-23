@@ -1,110 +1,83 @@
 import 'package:avatar_glow/avatar_glow.dart';
 import 'package:flutter/material.dart';
-import 'package:highlight_text/highlight_text.dart';
-import 'package:speech_to_text/speech_to_text.dart' as speechToText;
+import 'package:speech_to_text/speech_to_text.dart' as stts;
 
+// https://www.youtube.com/watch?v=M4gyFL1Nqq4
 
-class SpeechToText extends StatefulWidget {
-  const SpeechToText({super.key});
+class SpeechToTextScreen extends StatefulWidget {
+  const SpeechToTextScreen({super.key});
 
   @override
-  State<SpeechToText> createState() => _SpeechToTextState();
+  State<SpeechToTextScreen> createState() => _SpeechToTextScreenState();
 }
 
-class _SpeechToTextState extends State<SpeechToText> {
-  late speechToText.SpeechToText speech;
-  String textString = "Press The Button";
-  bool isListen = false;
-  double confidence = 1.0;
-  final Map<String, HighlightedWord> highlightWords = {
-    "flutter": HighlightedWord(
-        textStyle:
-        TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
-    "developer": HighlightedWord(
-        textStyle:
-        TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
-  };
-
+class _SpeechToTextScreenState extends State<SpeechToTextScreen> {
+  var _SpeechToText = stts.SpeechToText();
+  bool isListeing = false;
+  String text = 'Press the button and start speaking';
   void listen() async {
-    if (!isListen) {
-      print('Listening 1');
-      bool avail = await speech.initialize();
-      print('Testing: $avail');
-      if (avail) {
-        print('Listening 2');
+    if (!isListeing) {
+      bool available = await _SpeechToText.initialize(
+        onStatus: (status) => print("$status"),
+        onError: (errorNotifiaction) => print("$errorNotifiaction"),
+      );
+      if (available) {
         setState(() {
-          isListen = true;
+          isListeing = true;
         });
-        speech.listen(onResult: (value) {
-          setState(() {
-            textString = value.recognizedWords;
-            print('Output: $textString');
-            if (value.hasConfidenceRating && value.confidence > 0) {
-              confidence = value.confidence;
-            }
-          });
-        });
+        _SpeechToText.listen(
+          onResult: (result) => setState(() {
+            text = result.recognizedWords;
+          }),
+        );
       }
     } else {
-      print('Listening 3');
       setState(() {
-        isListen = false;
+        isListeing = false;
       });
-      speech.stop();
+      _SpeechToText.stop();
     }
   }
 
   @override
   void initState() {
     super.initState();
-    speech = speechToText.SpeechToText();
+    _SpeechToText = stts.SpeechToText();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Speech To Text"),
+        title: Text('Speech to text'),
+        backgroundColor: Colors.blue,
       ),
-      body: Column(
-        children: [
-          SizedBox(
-            height: 10.0,
-          ),
-          Container(
-            child: Text(
-              "Confidence: ${(confidence * 100.0).toStringAsFixed(1)}%",
-              style: TextStyle(
-                  fontSize: 20.0,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.red),
+      body: SingleChildScrollView(
+        child: Container(
+          alignment: Alignment.center,
+          padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          margin: EdgeInsets.only(bottom: 150),
+          child: Text(
+            text,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 20,
             ),
           ),
-          Container(
-            padding: EdgeInsets.all(20),
-            child: TextHighlight(
-              text: textString,
-              words: highlightWords,
-              textStyle: TextStyle(
-                  fontSize: 25.0,
-                  color: Colors.black,
-                  fontWeight: FontWeight.bold),
-            ),
-          )
-        ],
+        ),
       ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: AvatarGlow(
-        animate: isListen,
-        glowColor: Colors.red,
-        endRadius: 65.0,
-        duration: Duration(milliseconds: 2000),
-        repeatPauseDuration: Duration(milliseconds: 100),
+        animate: isListeing,
         repeat: true,
+        endRadius: 80,
+        glowColor: Colors.blue,
+        duration: Duration(milliseconds: 1000),
         child: FloatingActionButton(
-          child: Icon(isListen ? Icons.mic : Icons.mic_none),
           onPressed: () {
             listen();
           },
+          child: Icon(isListeing ? Icons.mic : Icons.mic_none),
         ),
       ),
     );
